@@ -481,7 +481,7 @@ const Login = () => {
               fontSize: "13px",
             }}
           >
-            <span>Version 1.0.0</span>
+            <span>Version 1.0.2</span>
           </div>
         </div>
       </footer>
