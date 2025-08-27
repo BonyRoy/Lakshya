@@ -219,7 +219,7 @@ const Login = () => {
               flex: "1",
               minWidth: "300px",
             }}
-            className="branding-section"
+            className="branding-section animate-slide-in-left"
           >
             <h1
               style={{
@@ -228,7 +228,7 @@ const Login = () => {
                 fontWeight: "bold",
                 marginBottom: "8px",
               }}
-              className="main-title"
+              className="main-title animate-fade-in-up"
             >
               <span
                 style={{
@@ -250,19 +250,24 @@ const Login = () => {
                 margin: 0,
                 fontSize: "1.2rem",
                 color: "#666",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
-              className="subtitle"
+              className="subtitle animate-fade-in-up animate-delay-200"
             >
               Powered By{" "}
               <span
                 style={{
-                  fontFamily: "cursive",
-                  background: "linear-gradient(45deg, #ffb300, #ff6f00)",
+                  fontFamily: "'Dancing Script', 'Brush Script MT', cursive",
+                  background:
+                    "linear-gradient(135deg, #ffb300, #ff6f00, #ff8f00)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
-                  fontWeight: "bold",
-                  fontSize: "1.3rem",
+                  fontWeight: "600",
+                  fontSize: "1.5rem",
+                  letterSpacing: "1px",
                 }}
               >
                 Lakshya
@@ -278,7 +283,7 @@ const Login = () => {
               justifyContent: "center",
               minWidth: "350px",
             }}
-            className="form-section"
+            className="form-section animate-slide-in-right"
           >
             <form
               onSubmit={handleSubmit}
@@ -293,9 +298,13 @@ const Login = () => {
                 width: "100%",
                 maxWidth: "400px",
               }}
+              className="animate-form-hover"
             >
               {/* Title */}
-              <div style={{ textAlign: "center", marginBottom: "10px" }}>
+              <div
+                style={{ textAlign: "center", marginBottom: "10px" }}
+                className="animate-fade-in-up animate-delay-400"
+              >
                 <h2 style={{ margin: 0, color: "#333", fontSize: "24px" }}>
                   Login
                 </h2>
@@ -313,10 +322,14 @@ const Login = () => {
                   borderRadius: "5px",
                   backgroundColor: loading ? "#f9f9f9" : "white",
                 }}
+                className="animate-fade-in-up animate-delay-500 animate-input-focus"
               />
 
               {/* Password input with visibility toggle */}
-              <div style={{ position: "relative" }}>
+              <div
+                style={{ position: "relative" }}
+                className="animate-fade-in-up animate-delay-600"
+              >
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
@@ -333,6 +346,7 @@ const Login = () => {
                     boxSizing: "border-box",
                     backgroundColor: loading ? "#f9f9f9" : "white",
                   }}
+                  className="animate-input-focus"
                 />
                 <button
                   type="button"
@@ -353,6 +367,7 @@ const Login = () => {
                     justifyContent: "center",
                   }}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="animate-button-hover"
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -367,6 +382,7 @@ const Login = () => {
                   fontSize: "14px",
                   color: "#666",
                 }}
+                className="animate-fade-in-up animate-delay-700"
               >
                 <input
                   type="checkbox"
@@ -379,6 +395,7 @@ const Login = () => {
                     height: "16px",
                     cursor: loading ? "not-allowed" : "pointer",
                   }}
+                  className="animate-checkbox"
                 />
                 <label
                   htmlFor="rememberMe"
@@ -386,6 +403,7 @@ const Login = () => {
                     cursor: loading ? "not-allowed" : "pointer",
                     userSelect: "none",
                   }}
+                  className="animate-label-hover"
                 >
                   Remember Me
                 </label>
@@ -407,6 +425,7 @@ const Login = () => {
                   justifyContent: "center",
                   gap: "8px",
                 }}
+                className="animate-fade-in-up animate-delay-800 animate-button-primary"
               >
                 {loading ? (
                   <>
@@ -481,7 +500,7 @@ const Login = () => {
               fontSize: "13px",
             }}
           >
-            <span>Version 1.0.2</span>
+            <span>Version 1.0.3</span>
           </div>
         </div>
       </footer>
@@ -507,6 +526,182 @@ const Login = () => {
           100% { transform: rotate(360deg); }
         }
 
+        /* Page Load Animations */
+        @keyframes slideInLeft {
+          0% {
+            opacity: 0;
+            transform: translateX(-50px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideInRight {
+          0% {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes fadeInUp {
+          0% {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+
+        @keyframes bounce {
+          0%, 20%, 60%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-10px);
+          }
+          80% {
+            transform: translateY(-5px);
+          }
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+
+        /* Animation Classes */
+        .animate-slide-in-left {
+          animation: slideInLeft 0.8s ease-out forwards;
+        }
+
+        .animate-slide-in-right {
+          animation: slideInRight 0.8s ease-out forwards;
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+          opacity: 0;
+        }
+
+        .animate-form-hover {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .animate-form-hover:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .animate-input-focus {
+          transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+        }
+
+        .animate-input-focus:focus {
+          border-color: #007bff;
+          box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+          transform: translateY(-2px);
+          outline: none;
+        }
+
+        .animate-button-hover {
+          transition: all 0.3s ease;
+        }
+
+        .animate-button-hover:hover {
+          transform: scale(1.1);
+          color: #007bff;
+        }
+
+        .animate-button-primary {
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .animate-button-primary:hover:not(:disabled) {
+          background-color: #0056b3;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .animate-button-primary:active:not(:disabled) {
+          transform: translateY(0);
+          animation: pulse 0.3s ease;
+        }
+
+        .animate-checkbox {
+          transition: transform 0.2s ease;
+        }
+
+        .animate-checkbox:checked {
+          animation: bounce 0.5s ease;
+        }
+
+        .animate-label-hover {
+          transition: color 0.3s ease;
+        }
+
+        .animate-label-hover:hover {
+          color: #007bff;
+        }
+
+        /* Animation Delays */
+        .animate-delay-200 {
+          animation-delay: 0.2s;
+        }
+
+        .animate-delay-400 {
+          animation-delay: 0.4s;
+        }
+
+        .animate-delay-500 {
+          animation-delay: 0.5s;
+        }
+
+        .animate-delay-600 {
+          animation-delay: 0.6s;
+        }
+
+        .animate-delay-700 {
+          animation-delay: 0.7s;
+        }
+
+        .animate-delay-800 {
+          animation-delay: 0.8s;
+        }
+
+        /* Error Animation */
+        .animate-error {
+          animation: shake 0.5s ease-in-out;
+          border-color: #dc3545 !important;
+        }
+
+        /* Loading Animation Enhancement */
+        .animate-loading {
+          animation: pulse 2s ease-in-out infinite;
+        }
+
         /* Mobile responsive design */
         @media (max-width: 768px) {
           .main-container {
@@ -530,6 +725,12 @@ const Login = () => {
           
           .subtitle {
             font-size: 1rem !important;
+          }
+
+          /* Adjust animations for mobile */
+          .animate-slide-in-left,
+          .animate-slide-in-right {
+            animation: fadeInUp 0.8s ease-out forwards;
           }
           
           /* Footer mobile layout */
@@ -560,6 +761,15 @@ const Login = () => {
         @media (min-width: 1200px) {
           .main-container {
             gap: 80px !important;
+          }
+        }
+
+        /* Reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
           }
         }
       `}</style>
