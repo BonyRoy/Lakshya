@@ -161,180 +161,210 @@ const Login = () => {
           justifyContent: "center",
           alignItems: "center",
           backgroundColor: "#f5f5f5",
-          flexDirection: "column",
-          gap: "80px",
+          padding: "20px",
+          boxSizing: "border-box",
         }}
       >
+        {/* Main container - responsive flex direction */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            textAlign: "center",
+            gap: "60px",
+            maxWidth: "1200px",
+            width: "100%",
           }}
+          className="main-container"
         >
-          <h1
+          {/* Branding Section */}
+          <div
             style={{
-              margin: 0,
-              fontSize: "2.5rem",
-              fontWeight: "bold",
-              marginBottom: "8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              flex: "1",
+              minWidth: "300px",
             }}
+            className="branding-section"
           >
-            <span
+            <h1
               style={{
-                color: "#1976d2", // Blue like button color
-              }}
-            >
-              Edu
-            </span>
-            <span
-              style={{
-                color: "#333",
-              }}
-            >
-              Flow
-            </span>
-          </h1>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "1rem",
-              color: "#666",
-            }}
-          >
-            Powered By{" "}
-            <span
-              style={{
-                fontFamily: "cursive",
-                background: "linear-gradient(45deg, #ffb300, #ff6f00)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
+                margin: 0,
+                fontSize: "3.5rem",
                 fontWeight: "bold",
-                fontSize: "1.1rem",
+                marginBottom: "8px",
               }}
+              className="main-title"
             >
-              Lakshya
-            </span>
-          </h2>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            padding: "30px",
-            backgroundColor: "#fff",
-            borderRadius: "10px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            gap: "15px",
-            minWidth: "350px",
-            maxWidth: "400px",
-          }}
-        >
-          {/* Title */}
-          <div style={{ textAlign: "center", marginBottom: "10px" }}>
-            <h2 style={{ margin: 0, color: "#333", fontSize: "24px" }}>
-              Login
+              <span
+                style={{
+                  color: "#1976d2",
+                }}
+              >
+                Edu
+              </span>
+              <span
+                style={{
+                  color: "#333",
+                }}
+              >
+                Flow
+              </span>
+            </h1>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "1.2rem",
+                color: "#666",
+              }}
+              className="subtitle"
+            >
+              Powered By{" "}
+              <span
+                style={{
+                  fontFamily: "cursive",
+                  background: "linear-gradient(45deg, #ffb300, #ff6f00)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  fontWeight: "bold",
+                  fontSize: "1.3rem",
+                }}
+              >
+                Lakshya
+              </span>
             </h2>
           </div>
 
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={loading}
+          {/* Login Form Section */}
+          <div
             style={{
-              padding: "12px",
-              fontSize: "16px",
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-              backgroundColor: loading ? "#f9f9f9" : "white",
-            }}
-          />
-
-          {/* Password input with visibility toggle */}
-          <div style={{ position: "relative" }}>
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              style={{
-                padding: "12px",
-                paddingRight: "40px", // Make space for the icon
-                fontSize: "16px",
-                border: "1px solid #ccc",
-                borderRadius: "5px",
-                width: "100%",
-                boxSizing: "border-box",
-                backgroundColor: loading ? "#f9f9f9" : "white",
-              }}
-            />
-            <button
-              type="button"
-              onClick={togglePasswordVisibility}
-              disabled={loading}
-              style={{
-                position: "absolute",
-                right: "10px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                color: loading ? "#ccc" : "#666",
-                padding: "0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: "12px",
-              fontSize: "16px",
-              backgroundColor: loading ? "#ccc" : "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: loading ? "not-allowed" : "pointer",
+              flex: "1",
               display: "flex",
-              alignItems: "center",
               justifyContent: "center",
-              gap: "8px",
+              minWidth: "350px",
             }}
+            className="form-section"
           >
-            {loading ? (
-              <>
-                <div
+            <form
+              onSubmit={handleSubmit}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                padding: "30px",
+                backgroundColor: "#fff",
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                gap: "15px",
+                width: "100%",
+                maxWidth: "400px",
+              }}
+            >
+              {/* Title */}
+              <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                <h2 style={{ margin: 0, color: "#333", fontSize: "24px" }}>
+                  Login
+                </h2>
+              </div>
+
+              <input
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+                style={{
+                  padding: "12px",
+                  fontSize: "16px",
+                  border: "1px solid #ccc",
+                  borderRadius: "5px",
+                  backgroundColor: loading ? "#f9f9f9" : "white",
+                }}
+              />
+
+              {/* Password input with visibility toggle */}
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                   style={{
-                    width: "16px",
-                    height: "16px",
-                    border: "2px solid #fff",
-                    borderTop: "2px solid transparent",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite",
+                    padding: "12px",
+                    paddingRight: "40px",
+                    fontSize: "16px",
+                    border: "1px solid #ccc",
+                    borderRadius: "5px",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    backgroundColor: loading ? "#f9f9f9" : "white",
                   }}
-                ></div>
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
-          </button>
-        </form>
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  disabled={loading}
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    color: loading ? "#ccc" : "#666",
+                    padding: "0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: "12px",
+                  fontSize: "16px",
+                  backgroundColor: loading ? "#ccc" : "#007bff",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                {loading ? (
+                  <>
+                    <div
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        border: "2px solid #fff",
+                        borderTop: "2px solid transparent",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite",
+                      }}
+                    ></div>
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
@@ -390,22 +420,6 @@ const Login = () => {
             <span>Version 1.0.0</span>
           </div>
         </div>
-
-        {/* Mobile responsive layout */}
-        <style>{`
-          @media (max-width: 768px) {
-            footer > div {
-              flex-direction: column !important;
-              text-align: center !important;
-            }
-            footer > div > div:first-child {
-              justify-content: center !important;
-            }
-            footer > div > div:last-child {
-              justify-content: center !important;
-            }
-          }
-        `}</style>
       </footer>
 
       {/* Toast Container */}
@@ -422,11 +436,67 @@ const Login = () => {
         theme="light"
       />
 
-      {/* CSS for loading spinner animation */}
+      {/* CSS for animations and responsive design */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile responsive design */
+        @media (max-width: 768px) {
+          .main-container {
+            flex-direction: column !important;
+            gap: 40px !important;
+            padding: 0 !important;
+          }
+          
+          .branding-section {
+            order: 1;
+          }
+          
+          .form-section {
+            order: 2;
+            min-width: auto !important;
+          }
+          
+          .main-title {
+            font-size: 2.5rem !important;
+          }
+          
+          .subtitle {
+            font-size: 1rem !important;
+          }
+          
+          /* Footer mobile layout */
+          footer > div {
+            flex-direction: column !important;
+            text-align: center !important;
+          }
+          footer > div > div:first-child {
+            justify-content: center !important;
+          }
+          footer > div > div:last-child {
+            justify-content: center !important;
+          }
+        }
+
+        /* Tablet responsive design */
+        @media (max-width: 1024px) and (min-width: 769px) {
+          .main-container {
+            gap: 40px !important;
+          }
+          
+          .main-title {
+            font-size: 3rem !important;
+          }
+        }
+
+        /* Large desktop optimization */
+        @media (min-width: 1200px) {
+          .main-container {
+            gap: 80px !important;
+          }
         }
       `}</style>
     </>
