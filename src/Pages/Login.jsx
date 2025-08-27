@@ -8,12 +8,30 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const adminCredentials = {
     admin: "admin123",
   };
+
+  // Load saved credentials on component mount
+  React.useEffect(() => {
+    const savedCredentials = localStorage.getItem("rememberedCredentials");
+    if (savedCredentials) {
+      try {
+        const { username: savedUsername, password: savedPassword } =
+          JSON.parse(savedCredentials);
+        setUsername(savedUsername || "");
+        setPassword(savedPassword || "");
+        setRememberMe(true);
+      } catch (error) {
+        console.error("Error loading saved credentials:", error);
+        localStorage.removeItem("rememberedCredentials");
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,6 +52,19 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Handle Remember Me functionality
+      if (rememberMe) {
+        localStorage.setItem(
+          "rememberedCredentials",
+          JSON.stringify({
+            username: username.trim(),
+            password: password.trim(),
+          })
+        );
+      } else {
+        localStorage.removeItem("rememberedCredentials");
+      }
+
       // Check for admin login
       if (username === "admin" && password === adminCredentials.admin) {
         toast.success("Welcome Admin! Redirecting to admin panel...", {
@@ -325,6 +356,39 @@ const Login = () => {
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "14px",
+                  color: "#666",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                />
+                <label
+                  htmlFor="rememberMe"
+                  style={{
+                    cursor: loading ? "not-allowed" : "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  Remember Me
+                </label>
               </div>
 
               <button
