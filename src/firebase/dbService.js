@@ -13,12 +13,14 @@ import { db } from './config.js'
 // Collection names
 export const COLLECTIONS = {
   FACULTIES: 'faculties',
-  SUBJECTS: 'subjects', 
+  SUBJECTS: 'subjects',
+  STANDARDS: 'standards', 
   BRANCHES: 'branches',
   CHAPTERS: 'chapters',
   LECTURES: 'lectures',
   FACULTY_ASSIGNMENTS: 'facultyAssignments',
-  LECTURE_PROGRESS: 'lectureProgress'
+  LECTURE_PROGRESS: 'lectureProgress',
+  CONTENT: 'content'
 }
 
 // Generic CRUD operations
@@ -107,6 +109,14 @@ export const subjectService = {
   onSnapshot: (callback) => dbService.onCollectionChange(COLLECTIONS.SUBJECTS, callback)
 }
 
+export const standardService = {
+  getAll: () => dbService.getAll(COLLECTIONS.STANDARDS),
+  add: (standard) => dbService.add(COLLECTIONS.STANDARDS, standard),
+  update: (id, standard) => dbService.update(COLLECTIONS.STANDARDS, id, standard),
+  delete: (id) => dbService.delete(COLLECTIONS.STANDARDS, id),
+  onSnapshot: (callback) => dbService.onCollectionChange(COLLECTIONS.STANDARDS, callback)
+}
+
 export const branchService = {
   getAll: () => dbService.getAll(COLLECTIONS.BRANCHES),
   add: (branch) => dbService.add(COLLECTIONS.BRANCHES, branch),
@@ -137,6 +147,14 @@ export const facultyAssignmentService = {
   update: (id, assignment) => dbService.update(COLLECTIONS.FACULTY_ASSIGNMENTS, id, assignment),
   delete: (id) => dbService.delete(COLLECTIONS.FACULTY_ASSIGNMENTS, id),
   onSnapshot: (callback) => dbService.onCollectionChange(COLLECTIONS.FACULTY_ASSIGNMENTS, callback)
+}
+
+export const contentService = {
+  getAll: () => dbService.getAll(COLLECTIONS.CONTENT),
+  add: (content) => dbService.add(COLLECTIONS.CONTENT, content),
+  update: (id, content) => dbService.update(COLLECTIONS.CONTENT, id, content),
+  delete: (id) => dbService.delete(COLLECTIONS.CONTENT, id),
+  onSnapshot: (callback) => dbService.onCollectionChange(COLLECTIONS.CONTENT, callback)
 }
 
 export const lectureProgressService = {

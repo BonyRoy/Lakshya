@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { facultyService } from "../firebase/dbService.js";
+import packageJson from "../../package.json";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -500,7 +501,7 @@ const Login = () => {
               fontSize: "13px",
             }}
           >
-            <span>Version 1.0.3</span>
+            <span>Version {packageJson.version}</span>
           </div>
         </div>
       </footer>

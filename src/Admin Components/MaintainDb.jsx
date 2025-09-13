@@ -19,7 +19,9 @@ import {
   chapterService,
   lectureService,
   facultyAssignmentService,
-  lectureProgressService
+  lectureProgressService,
+  standardService,
+  contentService
 } from '../firebase/dbService.js'
 
 const MaintainDb = () => {
@@ -32,6 +34,8 @@ const MaintainDb = () => {
   const [chapters, setChapters] = useState([])
   const [lectures, setLectures] = useState([])
   const [facultyAssignments, setFacultyAssignments] = useState([])
+  const [standards, setStandards] = useState([])
+  const [contentData, setContentData] = useState([])
   
   // Loading and error states
   const [loading, setLoading] = useState(true)
@@ -48,9 +52,14 @@ const MaintainDb = () => {
   const [newFacultyEntry, setNewFacultyEntry] = useState({ name: '', code: '', subject: '', uuid: '' })
   const [newSubjectEntry, setNewSubjectEntry] = useState({ name: '' })
   const [newBranchEntry, setNewBranchEntry] = useState({ name: '' })
-  const [newChapterEntry, setNewChapterEntry] = useState({ subject: '', chapterName: '' })
+  const [newChapterEntry, setNewChapterEntry] = useState({ subject: '', chapterName: '', standard: '' })
   const [newLectureEntry, setNewLectureEntry] = useState({ chapterName: '', nooflecturesrequired: '' })
   const [newAssignmentEntry, setNewAssignmentEntry] = useState({ faculty: '', chapter: '', branch: '' })
+  const [newStandardEntry, setNewStandardEntry] = useState({ name: '' })
+
+  // Content to be taught states
+  const [selectedContentChapter, setSelectedContentChapter] = useState('')
+  const [lectureContents, setLectureContents] = useState([])
 
   // Reset user data states
   const [resetFaculty, setResetFaculty] = useState('')
@@ -108,14 +117,18 @@ const MaintainDb = () => {
           branchesData,
           chaptersData,
           lecturesData,
-          assignmentsData
+          assignmentsData,
+          standardsData,
+          contentDataFromDb
         ] = await Promise.all([
           facultyService.getAll(),
           subjectService.getAll(),
           branchService.getAll(),
           chapterService.getAll(),
           lectureService.getAll(),
-          facultyAssignmentService.getAll()
+          facultyAssignmentService.getAll(),
+          standardService.getAll(),
+          contentService.getAll()
         ])
 
         console.log('Loaded data:', {
@@ -124,7 +137,9 @@ const MaintainDb = () => {
           branches: branchesData,
           chapters: chaptersData,
           lectures: lecturesData,
-          assignments: assignmentsData
+          assignments: assignmentsData,
+          standards: standardsData,
+          content: contentDataFromDb
         })
 
         setFaculties(facultiesData)
@@ -133,6 +148,8 @@ const MaintainDb = () => {
         setChapters(chaptersData)
         setLectures(lecturesData)
         setFacultyAssignments(assignmentsData)
+        setStandards(standardsData)
+        setContentData(contentDataFromDb)
       } catch (err) {
         setError('Failed to load data from database')
         console.error('Error loading data:', err)
@@ -158,6 +175,12 @@ const MaintainDb = () => {
       bg: '#ffedd5',
     },
     {
+      label: 'Standards',
+      icon: <GraduationCap size={18} />,
+      color: '#8b5cf6',
+      bg: '#f3e8ff',
+    },
+    {
       label: 'Branches',
       icon: <GraduationCap size={18} />,
       color: '#34d399',
@@ -174,6 +197,12 @@ const MaintainDb = () => {
       icon: <FileSignature size={18} />,
       color: '#a78bfa',
       bg: '#ede9fe',
+    },
+    {
+      label: 'Content to be taught',
+      icon: <BookOpen size={18} />,
+      color: '#10b981',
+      bg: '#ecfdf5',
     },
     {
       label: 'Faculty Assignment',
@@ -310,10 +339,12 @@ const MaintainDb = () => {
   const getService = (label) => {
     switch (label) {
       case 'Faculty': return facultyService
-      case 'Subject': return subjectService  
+      case 'Subject': return subjectService
+      case 'Standards': return standardService  
       case 'Branches': return branchService
       case 'Chapter': return chapterService
       case 'Lectures': return lectureService  // This was the missing case!
+      case 'Content to be taught': return contentService
       case 'Faculty Assignment': return facultyAssignmentService
       default: 
         console.error('No service found for label:', label)
@@ -472,7 +503,7 @@ const MaintainDb = () => {
               }
             </option>
             {options.map((option) => (
-              <option key={option.id || option.name} value={option.name}>
+              <option key={option.id || option.name} value={option.originalName || option.name}>
                 {option.name}
               </option>
             ))}
@@ -505,12 +536,14 @@ const MaintainDb = () => {
                    (item.subject && item.subject.toLowerCase().includes(term))
           
           case 'Subject':
+          case 'Standards':
           case 'Branches':
             return item.name && item.name.toLowerCase().includes(term)
           
           case 'Chapter':
             return (item.subject && item.subject.toLowerCase().includes(term)) ||
-                   (item.chapterName && item.chapterName.toLowerCase().includes(term))
+                   (item.chapterName && item.chapterName.toLowerCase().includes(term)) ||
+                   (item.standard && item.standard.toLowerCase().includes(term))
           
           case 'Lectures':
             return (item.chapterName && item.chapterName.toLowerCase().includes(term)) ||
@@ -543,6 +576,12 @@ const MaintainDb = () => {
           borderColor: '#fed7aa',
           focusColor: '#f97316',
           textColor: '#c2410c'
+        },
+        'Standards': {
+          backgroundColor: '#faf5ff',
+          borderColor: '#d8b4fe',
+          focusColor: '#8b5cf6',
+          textColor: '#7c3aed'
         },
         'Branches': {
           backgroundColor: '#f0fdf4',
@@ -582,8 +621,9 @@ const MaintainDb = () => {
       const placeholders = {
         'Faculty': 'Type to search by name, code, or subject...',
         'Subject': 'Type to search subjects...',
+        'Standards': 'Type to search standards...',
         'Branches': 'Type to search branches...',
-        'Chapter': 'Type to search by subject or chapter name...',
+        'Chapter': 'Type to search by subject, chapter name, or standard...',
         'Lectures': 'Type to search by chapter or lecture count...',
         'Faculty Assignment': 'Type to search by faculty, chapter, or branch...'
       }
@@ -595,6 +635,7 @@ const MaintainDb = () => {
       const names = {
         'Faculty': 'faculties',
         'Subject': 'subjects',
+        'Standards': 'standards',
         'Branches': 'branches', 
         'Chapter': 'chapters',
         'Lectures': 'lectures',
@@ -772,6 +813,258 @@ const MaintainDb = () => {
     )
   }
 
+  // Content Management Component
+  const renderContentManagement = () => {
+    // Get all chapters with standards for dropdown
+    const chapterOptions = chapters && chapters.length > 0 
+      ? chapters.filter(ch => ch.chapterName && ch.standard).map(ch => ({ 
+          displayName: `${ch.chapterName} (${ch.standard})`,
+          chapterName: ch.chapterName,
+          standard: ch.standard,
+          id: ch.id || `${ch.chapterName}-${ch.standard}`
+        }))
+      : []
+
+    // Handle chapter selection
+    const handleChapterSelect = (chapterWithStandard) => {
+      setSelectedContentChapter(chapterWithStandard)
+      
+      // Find the lecture count for this chapter
+      const lectureInfo = lectures.find(l => l.chapterName === chapterWithStandard.split(' (')[0])
+      const lectureCount = lectureInfo ? parseInt(lectureInfo.nooflecturesrequired) || 0 : 0
+      
+      // Initialize content array with empty strings
+      setLectureContents(Array(lectureCount).fill(''))
+      
+      // Load existing content if available
+      loadExistingContent(chapterWithStandard)
+    }
+
+    // Load existing content from database
+    const loadExistingContent = async (chapterWithStandard) => {
+      try {
+        const existingContent = contentData.find(c => c.chapterWithStandard === chapterWithStandard)
+        if (existingContent && existingContent.contents) {
+          setLectureContents(existingContent.contents)
+        }
+      } catch (error) {
+        console.error('Error loading existing content:', error)
+      }
+    }
+
+    // Handle content change for specific lecture
+    const handleContentChange = (lectureIndex, content) => {
+      const newContents = [...lectureContents]
+      newContents[lectureIndex] = content
+      setLectureContents(newContents)
+    }
+
+    // Save all content to database
+    const handleSaveContent = async () => {
+      if (!selectedContentChapter || lectureContents.length === 0) {
+        setError('Please select a chapter and add content')
+        return
+      }
+
+      try {
+        setOperationLoading(true)
+        
+        const chapterName = selectedContentChapter.split(' (')[0]
+        const standard = selectedContentChapter.match(/\(([^)]+)\)/)?.[1] || ''
+        
+        const contentToSave = {
+          chapterWithStandard: selectedContentChapter,
+          chapterName: chapterName,
+          standard: standard,
+          contents: lectureContents,
+          totalLectures: lectureContents.length
+        }
+
+        // Check if content already exists
+        const existingContent = contentData.find(c => c.chapterWithStandard === selectedContentChapter)
+        
+        if (existingContent) {
+          // Update existing content
+          await contentService.update(existingContent.id, contentToSave)
+          const updatedData = contentData.map(item => 
+            item.id === existingContent.id ? { ...contentToSave, id: existingContent.id } : item
+          )
+          setContentData(updatedData)
+        } else {
+          // Create new content
+          const newId = await contentService.add(contentToSave)
+          setContentData([...contentData, { ...contentToSave, id: newId }])
+        }
+        
+        setSuccessMessage(`Content saved successfully for ${selectedContentChapter}!`)
+        setTimeout(() => setSuccessMessage(null), 5000)
+        
+      } catch (error) {
+        console.error('Error saving content:', error)
+        setError('Failed to save content. Please try again.')
+      } finally {
+        setOperationLoading(false)
+      }
+    }
+
+    const selectedChapterName = selectedContentChapter ? selectedContentChapter.split(' (')[0] : ''
+    const lectureInfo = lectures.find(l => l.chapterName === selectedChapterName)
+    const lectureCount = lectureInfo ? parseInt(lectureInfo.nooflecturesrequired) || 0 : 0
+
+    return (
+      <div style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Chapter Selection - Fixed at top */}
+        <div style={{ 
+          padding: '20px 20px 0 20px',
+          flexShrink: 0
+        }}>
+          <div style={{ 
+            marginBottom: '20px',
+            padding: '20px',
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px'
+          }}>
+            <h3 style={{ margin: '0 0 15px 0', color: '#15803d' }}>Select Chapter to Define Content</h3>
+            <select
+              value={selectedContentChapter}
+              onChange={(e) => handleChapterSelect(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #22c55e',
+                borderRadius: '8px',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="">Select a chapter...</option>
+              {chapterOptions.map((option) => (
+                <option key={option.id} value={option.displayName}>
+                  {option.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '0 20px 20px 20px'
+        }}>
+          {/* Content Input Areas */}
+          {selectedContentChapter && lectureCount > 0 && (
+            <div>
+              <div style={{ 
+                marginBottom: '20px',
+                padding: '15px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px'
+              }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#1e40af' }}>
+                  Content for {selectedContentChapter}
+                </h3>
+                <p style={{ margin: '0', color: '#3730a3' }}>
+                  Define content for {lectureCount} lectures
+                </p>
+              </div>
+
+              {/* Lecture Content Text Areas */}
+              <div style={{ display: 'grid', gap: '20px', marginBottom: '30px' }}>
+                {Array.from({ length: lectureCount }, (_, index) => (
+                  <div key={index} style={{
+                    padding: '20px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    <label style={{ 
+                      display: 'block', 
+                      fontWeight: 'bold', 
+                      marginBottom: '8px',
+                      color: '#374151'
+                    }}>
+                      Lecture {index + 1} Content:
+                    </label>
+                    <textarea
+                      value={lectureContents[index] || ''}
+                      onChange={(e) => handleContentChange(index, e.target.value)}
+                      placeholder={`Enter content to be taught in lecture ${index + 1}...`}
+                      style={{
+                        width: '100%',
+                        height: '100px',
+                        padding: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        resize: 'vertical',
+                        backgroundColor: 'white',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Save Button */}
+              <div style={{ 
+                textAlign: 'center',
+                padding: '20px',
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                marginTop: '20px'
+              }}>
+                <button
+                  onClick={handleSaveContent}
+                  disabled={operationLoading}
+                  style={{
+                    padding: '12px 30px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: operationLoading ? 'not-allowed' : 'pointer',
+                    opacity: operationLoading ? 0.7 : 1,
+                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  {operationLoading ? 'Saving...' : 'Save All Content'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* No Lectures Message */}
+          {selectedContentChapter && lectureCount === 0 && (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: '0', color: '#92400e' }}>
+                No lectures assigned for this chapter. Please assign lecture numbers first.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const getCurrentTable = () => {
     switch (selected) {
       case 'Faculty':
@@ -786,15 +1079,20 @@ const MaintainDb = () => {
         })
       case 'Subject':
         return renderEditableTable('Subject', subjects, setSubjects, ['name'], newSubjectEntry, setNewSubjectEntry)
+      case 'Standards':
+        return renderEditableTable('Standards', standards, setStandards, ['name'], newStandardEntry, setNewStandardEntry)
       case 'Branches':
         return renderEditableTable('Branches', branches, setBranches, ['name'], newBranchEntry, setNewBranchEntry)
       case 'Chapter':
         return renderEditableTable('Chapter', chapters, setChapters, [
           'subject',
           'chapterName',
+          'standard',
         ], newChapterEntry, setNewChapterEntry, {
           subject: 'dropdown',
-          subject_options: subjects
+          subject_options: subjects,
+          standard: 'dropdown',
+          standard_options: standards
         })
       case 'Assign Lecture Numbers':
         return renderEditableTable('Lectures', lectures, setLectures, [
@@ -804,11 +1102,14 @@ const MaintainDb = () => {
           chapterName: 'dropdown',
           chapterName_options: chapters && chapters.length > 0 
             ? chapters.filter(ch => ch.chapterName).map(ch => ({ 
-                name: ch.chapterName, 
+                name: ch.standard ? `${ch.chapterName} (${ch.standard})` : ch.chapterName,
+                originalName: ch.chapterName,
                 id: ch.id || ch.chapterName 
               }))
             : []
         })
+      case 'Content to be taught':
+        return renderContentManagement()
       case 'Faculty Assignment':
         return renderEditableTable('Faculty Assignment', facultyAssignments, setFacultyAssignments, [
           'faculty',
@@ -825,7 +1126,8 @@ const MaintainDb = () => {
           chapter: 'dropdown',
           chapter_options: chapters && chapters.length > 0 
             ? chapters.filter(ch => ch.chapterName).map(ch => ({ 
-                name: ch.chapterName, 
+                name: ch.standard ? `${ch.chapterName} (${ch.standard})` : ch.chapterName,
+                originalName: ch.chapterName,
                 id: ch.id || ch.chapterName 
               }))
             : [],

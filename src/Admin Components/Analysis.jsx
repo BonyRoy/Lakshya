@@ -3,7 +3,17 @@ import React, { useState, useMemo, useEffect } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { useNavigate } from "react-router-dom";
-import { lectureProgressService } from "../firebase/dbService.js";
+import { 
+  lectureProgressService, 
+  contentService, 
+  chapterService,
+  facultyService,
+  subjectService,
+  standardService,
+  branchService,
+  lectureService,
+  facultyAssignmentService
+} from "../firebase/dbService.js";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import * as XLSX from "xlsx";
@@ -26,7 +36,100 @@ const Analysis = () => {
   const [selectedRecords, setSelectedRecords] = useState(new Set());
   const [showSelectiveDeleteModal, setShowSelectiveDeleteModal] =
     useState(false);
+  
+  // Predefined content hover modal states
+  const [predefinedContent, setPredefinedContent] = useState([]);
+  const [chaptersData, setChaptersData] = useState([]);
+  const [allCollectionsData, setAllCollectionsData] = useState({
+    faculties: [],
+    subjects: [],
+    standards: [],
+    branches: [],
+    lectures: [],
+    assignments: []
+  });
+  const [hoverModal, setHoverModal] = useState({
+    show: false,
+    content: '',
+    lectureNumber: 0,
+    x: 0,
+    y: 0
+  });
+
   const navigate = useNavigate();
+
+  // Get chapter name with standard
+  const getChapterNameWithStandard = React.useCallback((chapterName) => {
+    if (!chaptersData.length || !chapterName) return chapterName;
+    
+    const chapterData = chaptersData.find(ch => ch.chapterName === chapterName);
+    if (chapterData && chapterData.standard) {
+      return `${chapterName} (${chapterData.standard})`;
+    }
+    return chapterName;
+  }, [chaptersData]);
+
+  // Get predefined content for a specific lecture
+  const getPredefinedContentForLecture = (chapterName, lectureIndex) => {
+    if (!predefinedContent.length || !chaptersData.length || lectureIndex === 0) {
+      return null; // Skip first dot (Chapter Started) by returning null for index 0
+    }
+
+    // Find the chapter with its standard
+    const selectedChapterData = chaptersData.find(ch => ch.chapterName === chapterName);
+    if (!selectedChapterData || !selectedChapterData.standard) {
+      return null;
+    }
+
+    // Create the chapter identifier as stored in content
+    const chapterWithStandard = `${chapterName} (${selectedChapterData.standard})`;
+    
+    // Find predefined content for this chapter
+    const contentRecord = predefinedContent.find(c => c.chapterWithStandard === chapterWithStandard);
+    if (!contentRecord || !contentRecord.contents) {
+      return null;
+    }
+
+    // Get the content for this lecture (lectureIndex is 1-based for actual lectures, 0 is "Chapter Started")
+    const actualLectureIndex = lectureIndex - 1; // Convert to 0-based for array access
+    if (actualLectureIndex >= 0 && actualLectureIndex < contentRecord.contents.length) {
+      return {
+        lectureNumber: lectureIndex,
+        content: contentRecord.contents[actualLectureIndex]
+      };
+    }
+
+    return null;
+  };
+
+  // Handle dot click
+  const handleDotClick = (event, chapterName, lectureIndex) => {
+    const predefinedLectureContent = getPredefinedContentForLecture(chapterName, lectureIndex);
+    
+    if (predefinedLectureContent) {
+      const rect = event.target.getBoundingClientRect();
+      
+      // Toggle modal - if it's already showing for this lecture, close it
+      if (hoverModal.show && hoverModal.lectureNumber === lectureIndex) {
+        setHoverModal({
+          show: false,
+          content: '',
+          lectureNumber: 0,
+          x: 0,
+          y: 0
+        });
+      } else {
+        // Open modal for this lecture
+        setHoverModal({
+          show: true,
+          content: predefinedLectureContent.content,
+          lectureNumber: predefinedLectureContent.lectureNumber,
+          x: rect.right + 10,
+          y: rect.top - 60 // Move modal much further up for both laptop and mobile
+        });
+      }
+    }
+  };
 
   // Check if device is mobile
   useEffect(() => {
@@ -47,9 +150,57 @@ const Analysis = () => {
         setLoading(true);
         setError(null);
 
-        const progressData = await lectureProgressService.getAll();
+        // Load all data from all collections
+        const [
+          progressData, 
+          contentData, 
+          chaptersDataFromDb,
+          facultiesData,
+          subjectsData,
+          standardsData,
+          branchesData,
+          lecturesData,
+          assignmentsData
+        ] = await Promise.all([
+          lectureProgressService.getAll(),
+          contentService.getAll(),
+          chapterService.getAll(),
+          facultyService.getAll(),
+          subjectService.getAll(),
+          standardService.getAll(),
+          branchService.getAll(),
+          lectureService.getAll(),
+          facultyAssignmentService.getAll()
+        ]);
+        
         console.log("Loaded progress data:", progressData);
         console.log("Sample record structure:", progressData[0]);
+        
+        // Store all data for storage calculation and functionality
+        setPredefinedContent(contentData);
+        setChaptersData(chaptersDataFromDb);
+        setAllCollectionsData({
+          faculties: facultiesData,
+          subjects: subjectsData,
+          standards: standardsData,
+          branches: branchesData,
+          chapters: chaptersDataFromDb,
+          lectures: lecturesData,
+          assignments: assignmentsData,
+          content: contentData
+        });
+        
+        console.log("Loaded all database collections:", {
+          lectureProgress: progressData.length,
+          content: contentData.length,
+          chapters: chaptersDataFromDb.length,
+          faculties: facultiesData.length,
+          subjects: subjectsData.length,
+          standards: standardsData.length,
+          branches: branchesData.length,
+          lectures: lecturesData.length,
+          assignments: assignmentsData.length
+        });
 
         // Transform Firebase data to match expected format
         const transformedData = progressData.map((item, index) => {
@@ -112,6 +263,7 @@ const Analysis = () => {
             SUBJECT: item.SUBJECT || item.subject || "N/A",
             "BRANCH NAME": item["BRANCH NAME"] || item.branchName,
             CHAPTERNAME: item.CHAPTERNAME || item.chapterName,
+            CHAPTERNAME_WITH_STANDARD: getChapterNameWithStandard(item.CHAPTERNAME || item.chapterName),
             LECTURENUMBER: item.LECTURENUMBER || "0",
             PROGRESS: item.PROGRESS || [],
             LECTURETYPE: lectureTypesArray, // Use calculated types from progress entries
@@ -133,8 +285,17 @@ const Analysis = () => {
         console.log("Transformed data sample:", transformedData[0]);
         setData(transformedData);
 
-        // Calculate and update storage usage
-        const usage = calculateStorageUsage(transformedData);
+        // Calculate and update storage usage for ALL collections
+        const usage = calculateStorageUsage(transformedData, {
+          faculties: facultiesData,
+          subjects: subjectsData,
+          standards: standardsData,
+          branches: branchesData,
+          chapters: chaptersDataFromDb,
+          lectures: lecturesData,
+          assignments: assignmentsData,
+          content: contentData
+        });
         setStorageInfo(usage);
 
         if (transformedData.length === 0) {
@@ -152,7 +313,7 @@ const Analysis = () => {
     };
 
     loadData();
-  }, []);
+  }, []); // Only run once on component mount
 
   // Excel export function
   const exportToExcel = () => {
@@ -171,7 +332,7 @@ const Analysis = () => {
             "Faculties Involved": item["Faculty code"],
             Subject: item.SUBJECT,
             Branch: item["BRANCH NAME"],
-            Chapter: item.CHAPTERNAME,
+            Chapter: getChapterNameWithStandard(item.CHAPTERNAME),
             "Faculty for This Entry":
               progress["Faculty name"] || progress.facultyName || "Unknown",
             "Progress Entry": index + 1,
@@ -222,45 +383,109 @@ const Analysis = () => {
     }
   };
 
-  // Calculate Firebase storage usage (more realistic estimation)
-  const calculateStorageUsage = (dataArray) => {
-    if (dataArray.length === 0) {
-      return { used: 0, total: 1024, percentage: 0 };
-    }
-
+  // Calculate Firebase storage usage for ALL collections
+  const calculateStorageUsage = React.useCallback((progressDataArray, allCollections = {}) => {
     let totalSize = 0;
 
-    dataArray.forEach((item) => {
-      // More realistic Firestore document size calculation:
-      // - Base document overhead: ~1KB per document
-      // - Field names and metadata overhead
-      // - Actual content size
+    // Calculate size for lecture progress data
+    if (progressDataArray && progressDataArray.length > 0) {
+      progressDataArray.forEach((item) => {
+        let docSize = 1024; // Base 1KB per document (Firestore overhead)
 
-      let docSize = 1024; // Base 1KB per document (Firestore overhead)
+        // Calculate actual content size
+        if (item.PROGRESS && Array.isArray(item.PROGRESS)) {
+          item.PROGRESS.forEach((progress) => {
+            // Each progress entry: ~0.5-1KB depending on content length
+            const contentLength = (progress.CONTENTTAUGHT || "").length;
+            const remarkLength =
+              (progress.overshootRemark || "").length +
+              (progress.substituteRemark || "").length;
+            docSize += Math.max(512, (contentLength + remarkLength) * 2); // Minimum 0.5KB per entry
+          });
+        }
 
-      // Calculate actual content size
-      if (item.PROGRESS && Array.isArray(item.PROGRESS)) {
-        item.PROGRESS.forEach((progress) => {
-          // Each progress entry: ~0.5-1KB depending on content length
-          const contentLength = (progress.CONTENTTAUGHT || "").length;
-          const remarkLength =
-            (progress.overshootRemark || "").length +
-            (progress.substituteRemark || "").length;
-          docSize += Math.max(512, (contentLength + remarkLength) * 2); // Minimum 0.5KB per entry
+        // Add other fields (faculty names, metadata, etc.)
+        const otherFieldsSize = JSON.stringify({
+          facultyName: item["Faculty name"],
+          subject: item.SUBJECT,
+          branch: item["BRANCH NAME"],
+          chapter: getChapterNameWithStandard(item.CHAPTERNAME),
+          metadata: "etc",
+        }).length;
+
+        docSize += otherFieldsSize;
+        totalSize += docSize;
+      });
+    }
+
+    // Calculate size for all other collections from MaintainDb
+    Object.entries(allCollections).forEach(([collectionName, collectionData]) => {
+      if (collectionData && Array.isArray(collectionData)) {
+        collectionData.forEach((item) => {
+          let docSize = 1024; // Base 1KB per document (Firestore overhead)
+          
+          // Calculate size based on collection type
+          switch (collectionName) {
+            case 'faculties':
+              docSize += JSON.stringify({
+                name: item.name || '',
+                code: item.code || '',
+                subject: item.subject || '',
+                uuid: item.uuid || ''
+              }).length;
+              break;
+              
+            case 'subjects':
+            case 'standards':
+            case 'branches':
+              docSize += JSON.stringify({
+                name: item.name || ''
+              }).length;
+              break;
+              
+            case 'chapters':
+              docSize += JSON.stringify({
+                subject: item.subject || '',
+                chapterName: item.chapterName || '',
+                standard: item.standard || ''
+              }).length;
+              break;
+              
+            case 'lectures':
+              docSize += JSON.stringify({
+                chapterName: item.chapterName || '',
+                nooflecturesrequired: item.nooflecturesrequired || ''
+              }).length;
+              break;
+              
+            case 'assignments':
+              docSize += JSON.stringify({
+                faculty: item.faculty || '',
+                chapter: item.chapter || '',
+                branch: item.branch || ''
+              }).length;
+              break;
+              
+            case 'content':
+              docSize += JSON.stringify({
+                chapterWithStandard: item.chapterWithStandard || '',
+                chapterName: item.chapterName || '',
+                standard: item.standard || '',
+                contents: item.contents || [],
+                totalLectures: item.totalLectures || 0
+              }).length;
+              break;
+              
+            default:
+              // Generic calculation for unknown collections
+              docSize += JSON.stringify(item).length;
+          }
+          
+          totalSize += docSize;
         });
+        
+        console.log(`📊 ${collectionName} collection: ${collectionData.length} documents`);
       }
-
-      // Add other fields (faculty names, metadata, etc.)
-      const otherFieldsSize = JSON.stringify({
-        facultyName: item["Faculty name"],
-        subject: item.SUBJECT,
-        branch: item["BRANCH NAME"],
-        chapter: item.CHAPTERNAME,
-        metadata: "etc",
-      }).length;
-
-      docSize += otherFieldsSize;
-      totalSize += docSize;
     });
 
     totalSize = totalSize / (1024 * 1024); // Convert to MB
@@ -269,12 +494,20 @@ const Analysis = () => {
     const totalLimit = 1024; // MB
     const percentage = Math.min((totalSize / totalLimit) * 100, 100);
 
+    console.log('📊 Total storage calculation:', {
+      totalSizeBytes: totalSize * 1024 * 1024,
+      totalSizeMB: totalSize,
+      percentage: percentage,
+      progressRecords: progressDataArray?.length || 0,
+      collections: Object.keys(allCollections).map(key => `${key}: ${allCollections[key]?.length || 0} docs`).join(', ')
+    });
+
     return {
       used: Math.max(0.01, Math.round(totalSize * 1000) / 1000), // Show at least 0.01MB, round to 3 decimals
       total: totalLimit,
       percentage: Math.max(0.01, Math.round(percentage * 100) / 100), // Show at least 0.01%
     };
-  };
+  }, [getChapterNameWithStandard]);
 
   // Handle checkbox selection
   const handleSelectRecord = (uuid, checked) => {
@@ -336,8 +569,8 @@ const Analysis = () => {
       );
       setData(remainingData);
 
-      // Recalculate storage after deletion
-      const updatedUsage = calculateStorageUsage(remainingData);
+      // Recalculate storage after deletion (note: only progress data changes, other collections remain the same)
+      const updatedUsage = calculateStorageUsage(remainingData, allCollectionsData);
       setStorageInfo(updatedUsage);
 
       // Clear selections and close modal
@@ -412,7 +645,7 @@ const Analysis = () => {
           item["Faculty code"],
           item.SUBJECT,
           item["BRANCH NAME"],
-          item.CHAPTERNAME,
+          getChapterNameWithStandard(item.CHAPTERNAME),
         ];
 
         return searchFields.some(
@@ -434,7 +667,7 @@ const Analysis = () => {
           return dateA.getTime() - dateB.getTime();
         }
       });
-  }, [searchTerm, filterType, sortOrder, data]);
+  }, [searchTerm, filterType, sortOrder, data, getChapterNameWithStandard]);
 
   return (
     <>
@@ -1251,7 +1484,7 @@ const Analysis = () => {
                             Chapter
                           </span>
                           <span className="mobile-card-detail-value">
-                            {item.CHAPTERNAME}
+                            {getChapterNameWithStandard(item.CHAPTERNAME)}
                           </span>
                         </div>
                       </div>
@@ -1354,7 +1587,7 @@ const Analysis = () => {
                         {item["BRANCH NAME"]}
                       </div>
                       <div style={{ fontSize: "clamp(10px, 2vw, 14px)" }}>
-                        {item.CHAPTERNAME}
+                        {getChapterNameWithStandard(item.CHAPTERNAME)}
                       </div>
                       <div
                         style={{
@@ -1470,7 +1703,7 @@ const Analysis = () => {
                         fontSize: "clamp(14px, 2.5vw, 16px)",
                       }}
                     >
-                      {selectedRow["Faculty name"]} ({selectedRow.SUBJECT})
+                      {getChapterNameWithStandard(selectedRow.CHAPTERNAME)} - {selectedRow["BRANCH NAME"]} ({selectedRow.SUBJECT})
                     </h4>
                     <p
                       style={{
@@ -1478,7 +1711,7 @@ const Analysis = () => {
                         fontSize: "clamp(12px, 2vw, 14px)",
                       }}
                     >
-                      <strong>Chapter:</strong> {selectedRow.CHAPTERNAME}
+                      <strong>Chapter:</strong> {getChapterNameWithStandard(selectedRow.CHAPTERNAME)}
                     </p>
                     <p
                       style={{
@@ -1498,7 +1731,7 @@ const Analysis = () => {
                         {
                           type: "start",
                           title: "Chapter Started",
-                          subtitle: selectedRow.CHAPTERNAME,
+                          subtitle: getChapterNameWithStandard(selectedRow.CHAPTERNAME),
                           isLast: false,
                         },
                         ...selectedRow.PROGRESS.map((progress, idx) => ({
@@ -1544,6 +1777,25 @@ const Analysis = () => {
                             className={`mobile-timeline-dot ${
                               item.type === "end" ? "end" : ""
                             } ${index === array.length - 1 ? "last" : ""}`}
+                            style={{
+                              cursor: index > 0 ? "pointer" : "default",
+                              transition: "transform 0.2s ease"
+                            }}
+                            onClick={(e) => {
+                              if (index > 0) { // Skip the first dot (Chapter Started)
+                                handleDotClick(e, selectedRow.CHAPTERNAME, index);
+                              }
+                            }}
+                            onMouseEnter={(e) => {
+                              if (index > 0) { // Skip the first dot (Chapter Started)
+                                e.target.style.transform = "scale(1.1)";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (index > 0) { // Skip the first dot (Chapter Started)
+                                e.target.style.transform = "scale(1)";
+                              }
+                            }}
                           />
                           <div className="mobile-timeline-content">
                             <h5 className="mobile-timeline-title">
@@ -1570,7 +1822,7 @@ const Analysis = () => {
                         {
                           type: "start",
                           title: "Chapter Started",
-                          subtitle: selectedRow.CHAPTERNAME,
+                          subtitle: getChapterNameWithStandard(selectedRow.CHAPTERNAME),
                           isLast: false,
                         },
                         ...selectedRow.PROGRESS.map((progress, idx) => ({
@@ -1650,6 +1902,25 @@ const Analysis = () => {
                                 marginTop: "8px",
                                 zIndex: 2,
                                 position: "relative",
+                                cursor: index > 0 ? "pointer" : "default", // Only show pointer for lecture dots, not the first "Chapter Started" dot
+                                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                              }}
+                              onClick={(e) => {
+                                if (index > 0) { // Skip the first dot (Chapter Started)
+                                  handleDotClick(e, selectedRow.CHAPTERNAME, index);
+                                }
+                              }}
+                              onMouseEnter={(e) => {
+                                if (index > 0) { // Skip the first dot (Chapter Started)
+                                  e.target.style.transform = "scale(1.1)";
+                                  e.target.style.boxShadow = `0 0 0 3px ${item.type === "end" ? "#333" : "#666"}`;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (index > 0) { // Skip the first dot (Chapter Started)
+                                  e.target.style.transform = "scale(1)";
+                                  e.target.style.boxShadow = `0 0 0 2px ${item.type === "end" ? "#333" : "#666"}`;
+                                }
                               }}
                             />
                           </div>
@@ -1914,6 +2185,66 @@ const Analysis = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Click Modal for Predefined Content */}
+      {hoverModal.show && (
+        <>
+          {/* Backdrop to close modal when clicking outside */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9998,
+              backgroundColor: "transparent"
+            }}
+            onClick={() => setHoverModal({ show: false, content: '', lectureNumber: 0, x: 0, y: 0 })}
+          />
+          
+          {/* Modal Content */}
+          <div
+            style={{
+              position: "fixed",
+              left: `${hoverModal.x}px`,
+              top: `${Math.max(10, hoverModal.y)}px`, // Ensure modal doesn't go above screen
+              backgroundColor: "#f0f9ff",
+              border: "2px solid #2196f3",
+              borderRadius: "8px",
+              padding: "16px 20px 20px 20px", // Added more bottom padding
+              maxWidth: "300px",
+              maxHeight: "200px", // Limit modal height
+              overflowY: "auto", // Allow scrolling if content is too long
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              zIndex: 9999,
+              fontSize: "14px",
+              lineHeight: "1.4",
+              marginBottom: "20px" // Add bottom margin for spacing
+            }}
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+          >
+          <div
+            style={{
+              fontWeight: "bold",
+              color: "#1e40af",
+              marginBottom: "6px",
+              fontSize: "13px"
+            }}
+          >
+            📚 Lecture {hoverModal.lectureNumber} - Content to be taught:
+          </div>
+          <div
+            style={{
+              color: "#1e3a8a",
+              fontStyle: "italic"
+            }}
+          >
+            {hoverModal.content}
+          </div>
+        </div>
+        </>
       )}
     </>
   );

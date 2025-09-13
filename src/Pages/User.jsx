@@ -6,7 +6,9 @@ import 'react-toastify/dist/ReactToastify.css'
 import {
   facultyAssignmentService,
   lectureService,
-  lectureProgressService
+  lectureProgressService,
+  chapterService,
+  contentService
 } from '../firebase/dbService.js'
 
 const ZigZagClipPath = () => (
@@ -54,6 +56,8 @@ const User = () => {
   const [currentFaculty, setCurrentFaculty] = useState(null)
   const [assignments, setAssignments] = useState([])
   const [lectureData, setLectureData] = useState([])
+  const [chaptersData, setChaptersData] = useState([])
+  const [predefinedContent, setPredefinedContent] = useState([])
   const [loading, setLoading] = useState(true)
   
   // Form state
@@ -85,15 +89,19 @@ const User = () => {
         const faculty = JSON.parse(facultyData)
         setCurrentFaculty(faculty)
         
-        // Load assignments and lectures
-        const [assignmentsData, lecturesData] = await Promise.all([
+        // Load assignments, lectures, chapters, and predefined content
+        const [assignmentsData, lecturesData, chaptersDataFromDb, contentData] = await Promise.all([
           facultyAssignmentService.getAll(),
-          lectureService.getAll()
+          lectureService.getAll(),
+          chapterService.getAll(),
+          contentService.getAll()
         ])
         
-        // Store all assignments (needed for substitute teaching)
+        // Store all data (needed for substitute teaching and chapter display)
         setAssignments(assignmentsData)
         setLectureData(lecturesData)
+        setChaptersData(chaptersDataFromDb)
+        setPredefinedContent(contentData)
         
       } catch (error) {
         console.error('Error loading data:', error)
@@ -156,13 +164,15 @@ const User = () => {
   // Use useCallback to prevent unnecessary re-renders and ensure stable reference
   const calculateLectureTypes = useCallback(() => {
     // More robust validation
-    if (!selectedChapter || !selectedBranch || !currentFaculty || !lectureData.length || !assignments.length || !previousRemarks) {
+    if (!selectedChapter || !selectedBranch || !currentFaculty || !lectureData.length || !assignments.length || !chaptersData.length || predefinedContent.length < 0 || !previousRemarks) {
       console.log('❌ calculateLectureTypes: Missing required data', {
         selectedChapter: !!selectedChapter,
         selectedBranch: !!selectedBranch, 
         currentFaculty: !!currentFaculty,
         lectureDataLength: lectureData.length,
         assignmentsLength: assignments.length,
+        chaptersDataLength: chaptersData.length,
+        predefinedContentLength: predefinedContent.length,
         previousRemarksLength: previousRemarks?.length
       })
       return
@@ -253,23 +263,60 @@ const User = () => {
       isSubstitute,
       calculatedTypes: types
     })
-  }, [selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, previousRemarks])
+  }, [selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, chaptersData, predefinedContent, previousRemarks])
 
   // Load previous progress when chapter/branch changes
   useEffect(() => {
-    if (selectedChapter && selectedBranch && currentFaculty && lectureData.length > 0 && assignments.length > 0) {
+    if (selectedChapter && selectedBranch && currentFaculty && lectureData.length > 0 && assignments.length > 0 && chaptersData.length > 0 && predefinedContent.length >= 0) {
       console.log('🔄 Loading progress for:', selectedChapter, selectedBranch)
       loadPreviousProgress()
     }
-  }, [selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, loadPreviousProgress])
+  }, [selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, chaptersData, predefinedContent, loadPreviousProgress])
+
+  // Get predefined content for current lecture
+  const getPredefinedContentForLecture = useCallback(() => {
+    if (!selectedChapter || !previousRemarks || !chaptersData.length || !predefinedContent.length) {
+      return null
+    }
+
+    // Find the chapter with its standard
+    const selectedChapterData = chaptersData.find(ch => ch.chapterName === selectedChapter)
+    if (!selectedChapterData || !selectedChapterData.standard) {
+      return null
+    }
+
+    // Create the chapter identifier as stored in content
+    const chapterWithStandard = `${selectedChapter} (${selectedChapterData.standard})`
+    
+    // Find predefined content for this chapter
+    const contentRecord = predefinedContent.find(c => c.chapterWithStandard === chapterWithStandard)
+    if (!contentRecord || !contentRecord.contents) {
+      return null
+    }
+
+    // Get the current lecture number (next lecture to be taught)
+    const nextLectureNumber = previousRemarks.length // 0-based index for array
+    
+    // Return the predefined content for this lecture
+    if (nextLectureNumber < contentRecord.contents.length) {
+      return {
+        lectureNumber: nextLectureNumber + 1, // 1-based for display
+        content: contentRecord.contents[nextLectureNumber],
+        totalLectures: contentRecord.contents.length
+      }
+    }
+
+    return null
+  }, [selectedChapter, previousRemarks, chaptersData, predefinedContent])
 
   // Calculate lecture types when previousRemarks changes or when other dependencies change
   useEffect(() => {
-    if (selectedChapter && selectedBranch && currentFaculty && lectureData.length > 0 && assignments.length > 0 && previousRemarks !== undefined) {
+    if (selectedChapter && selectedBranch && currentFaculty && lectureData.length > 0 && assignments.length > 0 && chaptersData.length > 0 && predefinedContent.length >= 0 && previousRemarks !== undefined) {
       console.log('🔄 Calculating lecture types due to data change')
       calculateLectureTypes()
     }
-  }, [calculateLectureTypes, selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, previousRemarks])
+  }, [calculateLectureTypes, selectedChapter, selectedBranch, currentFaculty, lectureData, assignments, chaptersData, predefinedContent, previousRemarks])
+
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -284,19 +331,46 @@ const User = () => {
   // Get chapters and branches assigned to current faculty
   // Note: For substitute teaching, faculty can teach any unassigned chapter/branch combination
   const getAvailableChapters = () => {
-    if (!currentFaculty) return []
+    if (!currentFaculty || !chaptersData.length) return []
     
-    const chapters = new Set()
+    const availableChapters = []
     
-    // FIXED: Only add chapters assigned to the CURRENT faculty
+    // Get all chapters assigned to the CURRENT faculty
     assignments.forEach(a => {
       if (a.faculty === currentFaculty.name && a.chapter) {
-        chapters.add(a.chapter)
+        // Find the chapter data with standard information
+        const chapterWithStandard = chaptersData.filter(ch => ch.chapterName === a.chapter)
+        
+        if (chapterWithStandard.length > 0) {
+          chapterWithStandard.forEach(ch => {
+            const displayName = ch.standard ? `${ch.chapterName} (${ch.standard})` : ch.chapterName
+            const chapterInfo = {
+              displayName: displayName,
+              originalName: ch.chapterName,
+              standard: ch.standard
+            }
+            
+            // Avoid duplicates
+            if (!availableChapters.find(item => item.displayName === displayName)) {
+              availableChapters.push(chapterInfo)
+            }
+          })
+        } else {
+          // Fallback if chapter data not found
+          const chapterInfo = {
+            displayName: a.chapter,
+            originalName: a.chapter,
+            standard: null
+          }
+          if (!availableChapters.find(item => item.originalName === a.chapter)) {
+            availableChapters.push(chapterInfo)
+          }
+        }
       }
     })
     
-    console.log('📚 Available chapters for', currentFaculty.name, ':', Array.from(chapters))
-    return Array.from(chapters)
+    console.log('📚 Available chapters for', currentFaculty.name, ':', availableChapters)
+    return availableChapters
   }
 
   const getAvailableBranches = () => {
@@ -512,8 +586,8 @@ const User = () => {
               >
                 <option value="">Select a chapter</option>
                 {availableChapters.map((chapter, idx) => (
-                  <option key={idx} value={chapter}>
-                    {chapter}
+                  <option key={idx} value={chapter.originalName}>
+                    {chapter.displayName}
                   </option>
                 ))}
               </select>
@@ -587,24 +661,62 @@ const User = () => {
               </div>
             )}
 
-            {/* Content Taught */}
+            {/* Content to be taught (Predefined) */}
+            {selectedChapter && selectedBranch && (() => {
+              const predefinedLectureContent = getPredefinedContentForLecture()
+              
+              if (predefinedLectureContent) {
+                return (
+                  <div style={{ marginBottom: '15px' }}>
+                    <strong>Content to be taught:</strong>
+                    <div style={{
+                      marginTop: '8px',
+                      backgroundColor: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ 
+                        fontSize: '13px', 
+                        fontWeight: 'bold', 
+                        color: '#1e40af',
+                        marginBottom: '6px'
+                      }}>
+                        📚 Lecture {predefinedLectureContent.lectureNumber} - Predefined Content:
+                      </div>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#1e3a8a',
+                        lineHeight: '1.4',
+                        fontStyle: 'italic'
+                      }}>
+                        {predefinedLectureContent.content}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            {/* Content Taught (User Input) */}
             {selectedChapter && selectedBranch && (
               <div style={{ marginBottom: '15px' }}>
-              <strong>Content Taught:</strong>
-              <input
-                type="text"
-                value={contentTaught}
-                onChange={(e) => setContentTaught(e.target.value)}
-                  placeholder="Enter content taught today"
-                style={{
-                  marginTop: '4px',
+                <strong>Content Taught:</strong>
+                <input
+                  type="text"
+                  value={contentTaught}
+                  onChange={(e) => setContentTaught(e.target.value)}
+                  placeholder="Enter your remarks about what you taught today..."
+                  style={{
+                    marginTop: '4px',
                     padding: '8px 10px',
-                  width: '100%',
-                  borderRadius: '6px',
-                  border: '1px solid #ccc',
-                }}
-              />
-            </div>
+                    width: '100%',
+                    borderRadius: '6px',
+                    border: '1px solid #ccc',
+                  }}
+                />
+              </div>
             )}
 
             {/* Overshoot Remark */}
