@@ -9,7 +9,7 @@
 ### 1. Create Firebase Project
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click "Create a project" or "Add project"
-3. Enter project name (e.g., "coaching-classes-db")
+3. Enter project name (e.g., "eduflow-a2193")
 4. Follow the setup wizard
 
 ### 2. Enable Firestore Database
