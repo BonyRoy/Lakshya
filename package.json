@@ -7,9 +7,19 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:mobile": "vite build && npx cap sync",
+    "android": "npx cap run android",
+    "ios": "npx cap run ios",
+    "sync": "npx cap sync",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "firebase": "^12.1.0",
     "lucide-react": "^0.541.0",
     "react": "^19.1.1",

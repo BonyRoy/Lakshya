@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CDG Sir Classes</string>
+    <string name="title_activity_main">CDG Sir Classes</string>
+    <string name="package_name">com.cdgsir.classes</string>
+    <string name="custom_url_scheme">com.cdgsir.classes</string>
+</resources>
